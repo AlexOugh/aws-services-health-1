@@ -1,0 +1,135 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Lambda function for Health Events
+Parameters:
+  HealthLogGroupName:
+    Type: String
+    Default: "/SungardAS/Alerts/Health"
+    Description: Health Cloudwatch Log Group Name
+  SubscriptionFilterDestinationArn:
+    Type: String
+    Description: Subscription Filter Destination Arn
+Resources:
+  LambdaFunctionIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        -
+          PolicyName: "InlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "sns:*"
+                Resource: "*"
+  LambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AlexOugh-Health
+      Handler: index.handler
+      Runtime: nodejs4.3
+      CodeUri: ./src
+      Role: !GetAtt LambdaFunctionIAMRole.Arn
+      Timeout: 60
+      Environment:
+        Variables:
+          HEALTH_TOPIC_ARN: !Ref HealthTopic
+      Events:
+        HealthEvent:
+          Type: CloudWatchEvent
+          Properties:
+            Pattern:
+              source:
+                - aws.health
+  HealthTopic:
+    Type: AWS::SNS::Topic
+  AlertLambdaFunctionIAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "AllowLambdaServiceToAssumeRole"
+            Effect: "Allow"
+            Action:
+              - "sts:AssumeRole"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+      Policies:
+        -
+          PolicyName: "InlinePolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Resource: "arn:aws:logs:*:*:*"
+              -
+                Effect: "Allow"
+                Action:
+                  - "cloudwatchlogs:*"
+                Resource: "*"
+  CloudWatchLogsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: AlexOugh-Health-Alert-CloudwatchLogs
+      Handler: index_cloudwatchlogs.handler
+      Runtime: nodejs4.3
+      CodeUri: ./src
+      Role: !GetAtt AlertLambdaFunctionIAMRole.Arn
+      Timeout: 300
+      Environment:
+        Variables:
+          HEALTH_LOG_GROUP_NAME: !Ref HealthLogGroupName
+      Events:
+        HealthAlertTopic:
+          Type: SNS
+          Properties:
+            Topic: !Ref HealthTopic
+  HealthLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Ref HealthLogGroupName
+  SubscriptionFilter:
+    Type: AWS::Logs::SubscriptionFilter
+    DependsOn: HealthLogGroup
+    Properties:
+      LogGroupName: !Ref HealthLogGroupName
+      FilterPattern: ""
+      DestinationArn: !Ref SubscriptionFilterDestinationArn
+
+Outputs:
+  LambdaFunction:
+    Description: "Lambda Function ARN"
+    Value: !GetAtt LambdaFunction.Arn
+  CloudWatchLogsLambdaFunction:
+    Description: "CloudWatch Logs Lambda Function ARN"
+    Value: !GetAtt CloudWatchLogsFunction.Arn
