@@ -35,7 +35,7 @@ Input Parameter Values
 
 - GitHubSourceRepositoryOwner: `SungardAS`
 
-- ParameterOverrides: `{ "HealthLogGroupName": "/SungardAS/Alerts/Health" }`
+- ParameterOverrides: `{ "HealthLogGroupName": "/SungardAS/Alerts/Health", "SubscriptionFilterDestinationArn": "arn:aws:logs:<region>:<account>:destination:<destination_name>" }`
 
 - ProjectImage: `aws/codebuild/nodejs:4.3.2`
 
