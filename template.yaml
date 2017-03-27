@@ -95,6 +95,7 @@ Resources:
               -
                 Effect: "Allow"
                 Action:
+                  - "logs:*"
                   - "cloudwatchlogs:*"
                 Resource: "*"
   CloudWatchLogsFunction:

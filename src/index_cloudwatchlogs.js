@@ -1,6 +1,7 @@
 
 var uuid = require('node-uuid');
-var aws_cloudwatchlog = new (require('aws-services-lib/aws/cloudwatchlog.js'))();
+var CWLogs = require('aws-services-lib/aws/cloudwatchlog.js');
+var aws_cloudwatchlog = new CWLogs();
 
 var logGroupName = process.env.HEALTH_LOG_GROUP_NAME;
 
